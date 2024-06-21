@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
-from typing import List, Union
+from pydantic import BaseModel,Field
+from typing import List, Union, Optional
 
 app = FastAPI()
 
@@ -9,16 +9,15 @@ class Book(BaseModel):
     title: str
     author: str
     description: str
-    rating: Union[int, float]  # Allow both integer and float for ratings
+    rating: Union[int, float]  
 
 class BookRequest(BaseModel):
-    id: int
-    title: str
-    author: str
-    description: str
-    rating: Union[int, float]
-
-# Initialize BOOKS with instances of the Book model
+    id: Optional[int] = None
+    title: str = Field(..., min_length=3, example='A New Book')
+    author: str = Field(..., min_length=3, example='A New Author')
+    description: str = Field(..., min_length=3, max_length=100, example='A brief description of the new book.')
+    rating: int = Field(..., gt=-1, lt=6, example=5)
+   
 BOOKS = [
     Book(id=1, title='Computer Science Pro', author='Tom', description='A very good book', rating=5),
     Book(id=2, title='Fundamentals of Data Engineering:', author='Joe Reis', description='Nice good book', rating=4),
@@ -36,6 +35,12 @@ async def read_all_books():
 
 @app.post("/create-book", response_model=Book)
 async def create_book(book_request: BookRequest):
+    new_book = Book(**book_request.dict())
     BOOKS.append(new_book)
     return new_book
 
+
+def find_book_id(book: Book):
+    book.id = 1 if len(BOOKS) == 0 else BOOKS[-1].id + 1
+    return book
+    
